@@ -48,6 +48,11 @@ def create_app(config_object=None):
 
     # Load configuration
     app.config.from_object(config_object or get_config())
+    # Fix SQLite database path on Vercel
+    if os.environ.get("VERCEL") and not os.environ.get("DATABASE_URL"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = (
+            "sqlite:////tmp/smart_resume_instance/app.db"
+        )
 
     # Configure secret key
     if not app.config.get("SECRET_KEY"):
