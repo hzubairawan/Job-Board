@@ -1,0 +1,85 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import status_badge, score_bar, empty_state, disclaimer %}
+{% block title %}Employer dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h3 class="fw-bold mb-0">Hello, {{ current_user.full_name.split()[0] }}</h3>
+    <div class="text-muted small">{{ current_user.display_company }}</div>
+  </div>
+  <a href="{{ url_for('employer.job_new') }}" class="btn btn-teal"><i class="bi bi-plus-lg me-1"></i>Post a job</a>
+</div>
+
+<div class="row g-3 mb-3">
+  {% for icon, label, value, tone in [
+    ('briefcase','Total jobs', stats.total_jobs, 'navy'),
+    ('unlock','Open jobs', stats.open_jobs, 'teal'),
+    ('lock','Closed jobs', stats.closed_jobs, 'slate'),
+    ('people','Total applicants', stats.total_applicants, 'navy'),
+    ('star','Shortlisted', stats.shortlisted, 'teal'),
+    ('percent','Avg. match score', stats.avg_score ~ '%', 'slate')] %}
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="stat-card tone-{{ tone }} fade-up"><div class="stat-icon"><i class="bi bi-{{ icon }}"></i></div>
+      <div class="stat-value">{{ value }}</div><div class="stat-label">{{ label }}</div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Applications, last 7 days</h6>
+    <div class="chart-box"><canvas data-chart='{{ charts.weekly|tojson }}' aria-label="Applications over the last seven days" role="img"></canvas></div></div></div>
+  <div class="col-lg-4"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Applicants per job</h6>
+    {% if charts.per_job.data %}<div class="chart-box"><canvas data-chart='{{ charts.per_job|tojson }}' aria-label="Applicants per job" role="img"></canvas></div>
+    {% else %}<div class="text-muted small py-5 text-center">Post a job to see statistics.</div>{% endif %}</div></div>
+  <div class="col-lg-3"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Application status</h6>
+    {% if stats.total_applicants %}<div class="chart-box"><canvas data-chart='{{ charts.status|tojson }}' aria-label="Applications by status" role="img"></canvas></div>
+    {% else %}<div class="text-muted small py-5 text-center">No applicants yet.</div>{% endif %}</div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Match score distribution</h6>
+    {% if stats.total_applicants %}<div class="chart-box"><canvas data-chart='{{ charts.distribution|tojson }}' aria-label="Distribution of match scores" role="img"></canvas></div>
+    {% else %}<div class="text-muted small py-5 text-center">Scores appear once candidates apply.</div>{% endif %}</div></div>
+  <div class="col-lg-7"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Top candidates across your jobs</h6>
+    {% if top %}
+    <ul class="activity list-unstyled mb-0">
+      {% for a in top %}
+      <li><span class="avatar">{{ a.applicant.initials }}</span>
+        <a class="flex-grow-1 text-decoration-none text-reset" href="{{ url_for('employer.application_detail', application_id=a.id) }}">
+          <span class="fw-semibold">{{ a.applicant.full_name }}</span><span class="d-block small text-muted">{{ a.job.title }}</span></a>
+        <div style="width:150px">{{ score_bar(a.match_score) }}</div></li>
+      {% endfor %}
+    </ul>
+    {% else %}<div class="text-muted small py-5 text-center">No candidates yet.</div>{% endif %}</div></div>
+</div>
+
+<div class="card-lite p-0 overflow-hidden">
+  <div class="d-flex justify-content-between align-items-center p-3 pb-2">
+    <h6 class="fw-semibold mb-0">Recent applications</h6>
+    <a href="{{ url_for('employer.jobs') }}" class="small text-decoration-none">All jobs <i class="bi bi-arrow-right"></i></a>
+  </div>
+  {% if recent %}
+  <div class="table-responsive">
+    <table class="table table-modern align-middle mb-0">
+      <thead><tr><th>Applicant</th><th>Job</th><th style="min-width:160px">Match</th><th>Status</th><th>Applied</th></tr></thead>
+      <tbody>
+      {% for a in recent %}
+        <tr>
+          <td><a class="fw-semibold text-decoration-none" href="{{ url_for('employer.application_detail', application_id=a.id) }}">{{ a.applicant.full_name }}</a><div class="small text-muted">{{ a.applicant.email }}</div></td>
+          <td><a class="text-decoration-none" href="{{ url_for('employer.applicants', job_id=a.job_id) }}">{{ a.job.title }}</a></td>
+          <td>{{ score_bar(a.match_score) }}</td>
+          <td>{{ status_badge(a.status) }}</td>
+          <td class="text-nowrap text-muted small">{{ a.applied_at|ago }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ empty_state('inbox', 'No applications yet', 'Applications will show up here as soon as candidates apply.', url_for('employer.job_new'), 'Post a job') }}
+  {% endif %}
+</div>
+<div class="mt-4">{{ disclaimer() }}</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "layouts/dashboard.html" %}
+{% block title %}AI Career Tools{% endblock %}
+{% block page_title %}AI career toolkit{% endblock %}
+{% block content %}
+<div class="page-heading fade-up">
+  <span class="eyebrow"><i class="bi bi-stars me-1"></i> CAREER STUDIO</span>
+  <h1 class="h2 fw-bold mt-2">Make your next move with confidence</h1>
+  <p class="text-muted mb-0">Practical, job-specific guidance powered by AI. You stay in control of every edit and decision.</p>
+</div>
+{% if not ai_ready %}<div class="alert alert-warning border-0"><i class="bi bi-info-circle me-2"></i>AI is not configured yet. Add <code>OPENAI_API_KEY</code> to your local <code>.env</code> file and restart the app. Your regular job board and resume matching will continue to work without it.</div>{% endif %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="feature-card h-100"><div class="feature-icon"><i class="bi bi-file-earmark-check"></i></div><h5 class="fw-bold">Resume review</h5><p class="text-muted small mb-0">Get evidence-based feedback, strengths and practical improvements.</p></div></div>
+  <div class="col-md-4"><div class="feature-card h-100"><div class="feature-icon"><i class="bi bi-envelope-paper"></i></div><h5 class="fw-bold">Cover letter studio</h5><p class="text-muted small mb-0">Create a tailored first draft using only facts in your resume.</p></div></div>
+  <div class="col-md-4"><div class="feature-card h-100"><div class="feature-icon"><i class="bi bi-chat-square-heart"></i></div><h5 class="fw-bold">Interview coach</h5><p class="text-muted small mb-0">Prepare role-specific questions and answer frameworks.</p></div></div>
+</div>
+<div class="row g-4">
+ <div class="col-lg-5"><div class="surface-card h-100"><h5 class="fw-bold mb-1">Choose your career tool</h5><p class="small text-muted">Select one of your submitted applications.</p>
+  {% if applications %}<form method="post" data-loading data-loading-overlay data-loading-text="Preparing your career toolkit…">{{ csrf_token() }}
+   <label class="form-label" for="application_id">Your application</label><select class="form-select mb-3" name="application_id" id="application_id" required>{% for a in applications %}<option value="{{ a.id }}" {{ 'selected' if selected_id == a.id }}>{{ a.job.title }} · {{ a.applied_at|dt }}</option>{% endfor %}</select>
+   <label class="form-label" for="action">What would you like help with?</label><select class="form-select mb-3" name="action" id="action" required><option value="resume_review">Review my resume</option><option value="cover_letter">Draft a cover letter</option><option value="interview_prep">Prepare me for an interview</option></select>
+   <div class="privacy-consent p-3 rounded-3 mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" value="yes" id="privacy_consent" name="privacy_consent" required><label class="form-check-label small" for="privacy_consent">I agree to send the selected resume text to the configured AI provider for this request. Contact details are removed first.</label></div></div>
+   <button class="btn btn-primary w-100" type="submit"><span class="btn-label"><i class="bi bi-stars me-2"></i>Generate guidance</span></button>
+  </form>{% else %}<div class="empty-state py-4"><div class="empty-icon"><i class="bi bi-file-earmark-pdf"></i></div><h6 class="fw-semibold">No submitted resume yet</h6><p class="text-muted small">Apply to a job with a readable PDF resume to unlock these tools.</p><a class="btn btn-primary btn-sm" href="{{ url_for('applicant.dashboard') }}">Explore jobs</a></div>{% endif %}
+  <p class="tiny text-muted mt-3 mb-0"><i class="bi bi-shield-lock me-1"></i>Only your own application can be selected. AI usage is limited to 8 requests per session hour.</p>
+ </div></div>
+ <div class="col-lg-7"><div class="surface-card ai-output-card h-100"><div class="d-flex align-items-center gap-2 mb-3"><span class="feature-icon mb-0"><i class="bi bi-stars"></i></span><div><h5 class="fw-bold mb-0">Your AI workspace</h5><span class="tiny text-muted">Generated content appears here</span></div></div>
+ {% if output %}<div class="ai-output" id="ai-output">{{ output }}</div><button class="btn btn-outline-secondary btn-sm mt-3" type="button" data-copy-target="ai-output"><i class="bi bi-clipboard me-1"></i>Copy result</button>{% else %}<div class="ai-placeholder"><i class="bi bi-magic"></i><h6 class="fw-semibold mt-3">Your next-step plan starts here</h6><p class="text-muted small mb-0">Choose a tool, select an application and generate personalised guidance.</p></div>{% endif %}
+ </div></div>
+</div>
+<div class="disclaimer mt-4"><i class="bi bi-info-circle"></i><div><strong>Use AI as an assistant, not an authority.</strong> Review every suggestion, correct anything inaccurate, and never add skills or achievements you cannot support. AI output may be imperfect.</div></div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field, skill_chips, status_badge, score_bar, disclaimer %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block page_title %}Job details{% endblock %}
+
+{% macro upload_box(input_id, label) %}
+  <label class="drop-zone" for="{{ input_id }}" data-drop-zone>
+    <i class="bi bi-cloud-arrow-up fs-2"></i>
+    <span class="fw-semibold" data-drop-label>{{ label }}</span>
+    <span class="small text-muted">PDF only · up to 5 MB</span>
+    <input type="file" id="{{ input_id }}" name="resume" accept="application/pdf,.pdf" class="visually-hidden" required data-pdf-input data-max-mb="5">
+  </label>
+  <div class="invalid-feedback d-block" data-file-error hidden></div>
+{% endmacro %}
+
+{% block content %}
+<a href="{{ url_for('applicant.dashboard') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Back to job board</a>
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-8">
+    {% if check %}
+    <section class="card-lite p-4 mb-3 check-result fade-up" id="check-result">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-clipboard2-pulse me-1"></i>Your resume check <span class="text-muted fw-normal small">(not submitted, nothing saved)</span></h5>
+        {% if check.feedback.source == 'ai' %}<span class="ai-pill"><i class="bi bi-stars"></i> AI analysis</span>{% else %}<span class="badge badge-soft badge-soft-secondary">Basic analysis</span>{% endif %}
+      </div>
+      <div class="row g-3 align-items-center mb-3">
+        <div class="col-md-5"><div class="small text-muted mb-1">Text similarity to this job</div>{{ score_bar(check.score) }}</div>
+        <div class="col-md-7"><div class="small text-muted mb-1">Required skills found in your resume</div>
+          {% if check.matched %}{{ skill_chips(check.matched, check.matched) }}{% else %}<span class="small text-muted">None of the listed skills were found.</span>{% endif %}</div>
+      </div>
+      {% if check.missing %}<div class="mb-3"><div class="small text-muted mb-1">Not found (add them only if you genuinely have them)</div>{{ skill_chips(check.missing) }}</div>{% endif %}
+      {% if check.feedback.summary %}<p class="mb-3">{{ check.feedback.summary }}</p>{% endif %}
+      <div class="row g-3">
+        {% for title, items, icon in [('Strengths', check.feedback.strengths, 'hand-thumbs-up'), ('Gaps', check.feedback.gaps, 'exclamation-circle'), ('How to improve', check.feedback.suggestions, 'lightbulb')] %}
+        {% if items %}<div class="col-md-4"><h6 class="small fw-semibold text-uppercase text-muted"><i class="bi bi-{{ icon }} me-1"></i>{{ title }}</h6>
+          <ul class="small ps-3 mb-0">{% for i in items %}<li class="mb-1">{{ i }}</li>{% endfor %}</ul></div>{% endif %}
+        {% endfor %}
+      </div>
+      {% if check.feedback.source != 'ai' and not ai_on %}<div class="tiny text-muted mt-3">AI-written feedback appears here when the administrator enables an API key.</div>{% endif %}
+    </section>
+    {% endif %}
+
+    <article class="card-lite p-4 fade-up">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <div>
+          <h2 class="fw-bold mb-1">{{ job.title }}</h2>
+          <div class="text-muted">{{ job.company }}{% if job.location %} · <i class="bi bi-geo-alt"></i> {{ job.location }}{% endif %}</div>
+        </div>
+        <div class="d-flex gap-2 align-items-start flex-wrap">
+          <span class="badge badge-soft badge-soft-info">{{ job.job_type }}</span>{{ status_badge(job.display_status) }}
+          <form method="post" action="{{ url_for('applicant.toggle_save', job_id=job.id) }}">{{ csrf_field() }}
+            <button class="btn btn-sm {{ 'btn-teal' if saved else 'btn-outline-secondary' }}" type="submit"><i class="bi bi-bookmark{{ '-fill' if saved }} me-1"></i>{{ 'Saved' if saved else 'Save' }}</button></form>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% if job.experience_level %}<span class="meta-pill"><i class="bi bi-bar-chart"></i> {{ job.experience_level }}</span>{% endif %}
+        {% if job.salary_range %}<span class="meta-pill"><i class="bi bi-cash-coin"></i> {{ job.salary_range }}</span>{% endif %}
+        {% if job.deadline %}<span class="meta-pill"><i class="bi bi-calendar-event"></i> Apply by {{ job.deadline|dt }}</span>{% endif %}
+      </div>
+      <hr>
+      <h6 class="text-uppercase text-muted small fw-semibold">Description</h6>
+      <div class="job-description">{{ job.description }}</div>
+      <h6 class="text-uppercase text-muted small fw-semibold mt-4">Required skills</h6>
+      {{ skill_chips(job.skill_list, application.matched_for_job if application else none) }}
+      <div class="small text-muted mt-4">Posted {{ job.created_at|dt }}
+        {% if job.is_external %} · Source: <a href="{{ job.external_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ job.source_label or 'external site' }}</a>{% endif %}</div>
+    </article>
+  </div>
+
+  <div class="col-lg-4">
+    <aside class="card-lite p-4 sticky-lg fade-up delay-1">
+      {% if application %}
+        <h5 class="fw-bold">Your application</h5>
+        <dl class="mb-3">
+          <dt class="small text-muted">Applied</dt><dd>{{ application.applied_at|dt }}</dd>
+          <dt class="small text-muted">Status</dt><dd>{{ status_badge(application.status) }}</dd>
+          <dt class="small text-muted">Resume match</dt><dd>{{ score_bar(application.match_score) }}</dd>
+          {% if application.skill_coverage is not none %}<dt class="small text-muted">Skill coverage</dt><dd>{{ application.skill_coverage }}% of required skills found</dd>{% endif %}
+          <dt class="small text-muted">Resume file</dt><dd class="text-break">{{ application.original_filename }}</dd>
+        </dl>
+        {% if application.missing_for_job %}
+        <div class="gap-box mb-3"><div class="small fw-semibold mb-1"><i class="bi bi-exclamation-circle me-1"></i>Skill gap</div>
+          <div class="small text-muted mb-1">Not found in your resume:</div>{{ skill_chips(application.missing_for_job) }}</div>{% endif %}
+        <a class="btn btn-outline-primary w-100" href="{{ url_for('applicant.download_resume', application_id=application.id) }}"><i class="bi bi-download me-1"></i>Download my resume</a>
+        <form method="post" action="{{ url_for('applicant.withdraw', application_id=application.id) }}" class="mt-2"
+              data-confirm="Withdraw your application for “{{ job.title }}”? Your resume file will be deleted.">{{ csrf_field() }}
+          <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-x-circle me-1"></i>Withdraw application</button></form>
+      {% elif job.is_external and job.is_open %}
+        <h5 class="fw-bold">Apply on {{ job.source_label or 'the employer site' }}</h5>
+        <p class="text-muted small">This listing is hosted by {{ job.source_label or 'an external site' }}. Check your resume against it first, then apply on the original page.</p>
+        <a class="btn btn-teal w-100 py-2" href="{{ job.external_url }}" target="_blank" rel="noopener noreferrer nofollow"><i class="bi bi-box-arrow-up-right me-1"></i>Apply on original site</a>
+      {% elif job.is_open %}
+        <h5 class="fw-bold">Apply for this job</h5>
+        <p class="text-muted small">Upload your resume as a PDF (max 5 MB). Scanned, image-only PDFs can't be read.</p>
+        <form method="post" action="{{ url_for('applicant.apply', job_id=job.id) }}" enctype="multipart/form-data"
+              novalidate data-loading data-loading-overlay data-loading-text="Analysing your resume…" data-needs-file>
+          {{ csrf_field() }}
+          {{ upload_box('resume', 'Choose a PDF or drag it here') }}
+          <button class="btn btn-teal w-100 mt-3 py-2" type="submit"><span class="btn-label"><i class="bi bi-send me-1"></i>Submit application</span></button>
+        </form>
+      {% else %}
+        <div class="alert alert-secondary mb-0"><i class="bi bi-lock me-1"></i> This job is closed to new applications.</div>
+      {% endif %}
+
+      {% if job.is_open or check %}
+      <hr class="my-4">
+      <h6 class="fw-bold"><i class="bi bi-clipboard2-pulse me-1"></i>Check my resume first</h6>
+      <p class="text-muted small mb-2">Get your match score{{ ' and AI feedback' if ai_on else ' and a skill-gap analysis' }} without applying. Nothing is stored.</p>
+      <form method="post" action="{{ url_for('applicant.check_resume', job_id=job.id) }}" enctype="multipart/form-data"
+            novalidate data-loading data-loading-overlay data-loading-text="Analysing your resume…" data-needs-file>
+        {{ csrf_field() }}
+        {{ upload_box('resume-check', 'Choose a PDF to check') }}
+        <button class="btn btn-outline-primary w-100 mt-2" type="submit"><span class="btn-label">Analyse resume</span></button>
+      </form>
+      {% endif %}
+    </aside>
+    <div class="mt-3">{{ disclaimer() }}</div>
+  </div>
+</div>
+{% endblock %}

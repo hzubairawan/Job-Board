@@ -1,0 +1,74 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field, status_badge, empty_state, pager %}
+{% block title %}Job postings{% endblock %}
+{% block page_title %}Job postings{% endblock %}
+
+{% block content %}
+<section class="card-lite p-3 mb-3 import-card fade-up">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div><h6 class="fw-bold mb-1"><i class="bi bi-cloud-download me-1"></i>Import real jobs</h6>
+      <div class="small text-muted">Pulls current listings from public job-board APIs (Remotive, Arbeitnow). Applicants apply on the original site. Needs internet; duplicates are skipped.</div></div>
+    <form method="post" action="{{ url_for('admin.jobs_import') }}" class="d-flex flex-wrap gap-2 align-items-center"
+          data-loading data-loading-overlay data-loading-text="Importing jobs…">
+      {{ csrf_field() }}
+      <select class="form-select w-auto" name="source" aria-label="Source">
+        <option value="all">All sources</option><option value="remotive">Remotive</option><option value="arbeitnow">Arbeitnow</option>
+      </select>
+      <select class="form-select w-auto" name="limit" aria-label="How many">
+        {% for n in [25, 50, 100, 200] %}<option value="{{ n }}" {{ 'selected' if n == 50 }}>{{ n }} per source</option>{% endfor %}
+      </select>
+      <button class="btn btn-teal" type="submit"><span class="btn-label"><i class="bi bi-download me-1"></i>Import</span></button>
+    </form>
+  </div>
+</section>
+
+<form method="get" class="d-flex flex-wrap gap-2 mb-3" role="search">
+  <div class="input-group w-auto flex-grow-1" style="max-width: 420px">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="search" class="form-control" name="q" value="{{ q }}" placeholder="Search title or description" maxlength="100" aria-label="Search jobs">
+  </div>
+  <select class="form-select w-auto" name="status" aria-label="Filter by status" data-autosubmit>
+    <option value="">All statuses</option>
+    <option value="open" {{ 'selected' if status == 'open' }}>Open</option>
+    <option value="closed" {{ 'selected' if status == 'closed' }}>Closed</option>
+  </select>
+  <select class="form-select w-auto" name="source" aria-label="Filter by source" data-autosubmit>
+    <option value="">All sources</option>
+    <option value="internal" {{ 'selected' if source == 'internal' }}>Posted on platform</option>
+    <option value="external" {{ 'selected' if source == 'external' }}>Imported</option>
+  </select>
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+
+{% if jobs %}
+<div class="card-lite p-0 overflow-hidden fade-up">
+  <div class="table-responsive">
+    <table class="table table-modern align-middle mb-0">
+      <thead><tr><th>Job</th><th>Company</th><th>Source</th><th>Status</th><th>Applicants</th><th>Posted</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for job in jobs %}
+        <tr>
+          <td style="max-width:300px"><div class="fw-semibold">{{ job.title }}</div><div class="small text-muted clamp-1">{{ job.description }}</div></td>
+          <td><div>{{ job.company }}</div><div class="small text-muted">{{ job.employer.email if not job.is_external else '' }}</div></td>
+          <td>{% if job.is_external %}<a class="badge badge-soft badge-soft-secondary text-decoration-none" href="{{ job.external_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ job.source_label or 'Imported' }} <i class="bi bi-box-arrow-up-right"></i></a>{% else %}<span class="badge badge-soft badge-soft-info">Platform</span>{% endif %}</td>
+          <td>{{ status_badge(job.display_status) }}</td>
+          <td>{{ job.applicant_count }}</td>
+          <td class="text-nowrap small text-muted">{{ job.created_at|dt }}</td>
+          <td class="text-end">
+            <form method="post" action="{{ url_for('admin.job_delete', job_id=job.id) }}"
+                  data-confirm="Remove “{{ job.title }}”? Its {{ job.applicant_count }} application(s) and resume(s) will also be deleted.">
+              {{ csrf_field() }}
+              <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash me-1"></i>Remove</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager(pagination, 'admin.jobs', qargs) }}
+{% else %}
+  <div class="card-lite">{{ empty_state('briefcase', 'No job postings found', 'Nothing matches your search. Try importing jobs above.') }}</div>
+{% endif %}
+{% endblock %}

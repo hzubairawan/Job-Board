@@ -1,0 +1,14 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}AI Career Chatbot{% endblock %}
+{% block page_title %}AI Career Chatbot{% endblock %}
+{% block content %}
+<section class="welcome-card fade-up mb-4"><div><span class="eyebrow">TalentMatch AI</span><h3 class="fw-bold mt-2 mb-1">Your career assistant</h3><p class="mb-0 opacity-75">Ask about resumes, job searching, skills, interviews, or how to use this platform.</p></div><div class="welcome-stats"><div><div class="num"><i class="bi bi-chat-heart"></i></div><div class="lbl">Career support</div></div></div></section>
+<div class="chat-panel card-lite" id="career-chat" data-endpoint="{{ url_for('main.chatbot_message') }}">
+  <div class="chat-heading"><div class="company-badge"><i class="bi bi-robot"></i></div><div><strong>TalentMatch Assistant</strong><div class="small text-muted">AI-powered career guidance</div></div><span class="badge badge-soft badge-soft-success ms-auto">Online UI</span></div>
+  <div class="chat-messages" id="chat-messages" aria-live="polite"><div class="chat-bubble bot"><strong>Assalam-o-Alaikum!</strong><br>I can help you improve your CV, prepare for interviews, understand job requirements, and plan your career. What would you like help with?</div></div>
+  {% if not ai_ready %}<div class="alert alert-warning mx-3 mb-2">Chatbot setup required: add your OpenAI API key as <code>OPENAI_API_KEY</code> in the project's <code>.env</code> file, then restart Flask.</div>{% endif %}
+  <form id="chat-form" class="chat-compose">{{ csrf_field() }}<textarea id="chat-input" class="form-control" rows="2" maxlength="2000" placeholder="Ask a career question..." required></textarea><button class="btn btn-primary" type="submit" {% if not ai_ready %}disabled{% endif %}><i class="bi bi-send-fill me-1"></i>Send</button></form>
+  <div class="small text-muted px-3 pb-3">Avoid sharing passwords, API keys, or sensitive personal information. AI answers can contain mistakes.</div>
+</div>
+{% endblock %}

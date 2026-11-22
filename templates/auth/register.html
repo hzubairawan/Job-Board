@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Create account{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+
+{% block body %}
+<div class="auth-wrap">
+  <aside class="auth-side d-none d-lg-flex">
+    <a href="{{ url_for('main.index') }}" class="brand"><img src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="36" height="36"><span>TalentMatch</span></a>
+    <div>
+      <h2 class="fw-bold">Join as an applicant or employer.</h2>
+      <p class="opacity-75">Applicants get a clear job board and application tracker. Employers get ranked applicants for every role.</p>
+    </div>
+    <div class="small opacity-50">© TalentMatch · Final Year Project</div>
+  </aside>
+
+  <section class="auth-main">
+    <div class="auth-card fade-up">
+      <h3 class="fw-bold mb-1">Create your account</h3>
+      <p class="text-muted mb-4">It takes less than a minute.</p>
+      <form method="post" novalidate data-loading data-loading-text="Creating your account…" id="register-form">
+        {{ csrf_field() }}
+        <div class="role-switch mb-3" role="radiogroup" aria-label="Account type">
+          <input type="radio" class="btn-check" name="role" id="role-applicant" value="applicant" {{ 'checked' if form.role != 'employer' }}>
+          <label class="role-option" for="role-applicant"><i class="bi bi-person-badge"></i><span>I'm an applicant</span></label>
+          <input type="radio" class="btn-check" name="role" id="role-employer" value="employer" {{ 'checked' if form.role == 'employer' }}>
+          <label class="role-option" for="role-employer"><i class="bi bi-building"></i><span>I'm an employer</span></label>
+        </div>
+        <div class="mb-3">
+          <label for="full_name" class="form-label">Full name</label>
+          <input type="text" class="form-control" id="full_name" name="full_name" value="{{ form.full_name }}" required minlength="2" maxlength="120" autocomplete="name">
+        </div>
+        <div class="mb-3 {{ '' if form.role == 'employer' else 'd-none' }}" id="company-group">
+          <label for="company_name" class="form-label">Company name <span class="text-muted">(optional)</span></label>
+          <input type="text" class="form-control" id="company_name" name="company_name" value="{{ form.company_name }}" maxlength="150" autocomplete="organization">
+        </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">Email address</label>
+          <input type="email" class="form-control" id="email" name="email" value="{{ form.email }}" required autocomplete="email">
+        </div>
+        <div class="mb-2">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="password" name="password" required minlength="8" autocomplete="new-password">
+            <button class="btn btn-outline-secondary" type="button" data-toggle-password="#password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+          </div>
+          <div class="strength mt-2"><div class="strength-bar" id="strength-bar"></div></div>
+          <div class="form-text" id="strength-text">At least 8 characters, with a letter and a number.</div>
+        </div>
+        <div class="mb-4">
+          <label for="confirm_password" class="form-label">Confirm password</label>
+          <input type="password" class="form-control" id="confirm_password" name="confirm_password" required autocomplete="new-password">
+          <div class="invalid-feedback">Passwords do not match.</div>
+        </div>
+        <button class="btn btn-primary w-100 py-2" type="submit"><span class="btn-label">Create account</span></button>
+      </form>
+      <p class="text-center text-muted small mt-4 mb-0">Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+    </div>
+  </section>
+</div>
+{% endblock %}

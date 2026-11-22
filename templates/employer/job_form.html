@@ -1,0 +1,84 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}{{ 'Edit job' if job else 'Post a job' }}{% endblock %}
+{% block page_title %}{{ 'Edit job' if job else 'Post a job' }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-8">
+    <form method="post" class="card-lite p-4 fade-up" novalidate data-loading data-loading-text="Saving job…">
+      {{ csrf_field() }}
+      <div class="mb-3">
+        <label for="title" class="form-label">Job title</label>
+        <input type="text" class="form-control" id="title" name="title" value="{{ data.title }}" required minlength="3" maxlength="150" placeholder="e.g. Python Backend Developer">
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label for="job_type" class="form-label">Job type</label>
+          <select class="form-select" id="job_type" name="job_type">
+            {% for t in job_types %}<option value="{{ t }}" {{ 'selected' if data.job_type == t }}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="experience_level" class="form-label">Experience level</label>
+          <select class="form-select" id="experience_level" name="experience_level">
+            <option value="">Not specified</option>
+            {% for l in levels %}<option value="{{ l }}" {{ 'selected' if data.experience_level == l }}>{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="status" class="form-label">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="open" {{ 'selected' if data.status == 'open' }}>Open</option>
+            <option value="closed" {{ 'selected' if data.status == 'closed' }}>Closed</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="location" class="form-label">Location <span class="text-muted">(optional)</span></label>
+          <input type="text" class="form-control" id="location" name="location" value="{{ data.location }}" maxlength="100" placeholder="City or Remote">
+        </div>
+        <div class="col-md-4">
+          <label for="salary_range" class="form-label">Salary range <span class="text-muted">(optional)</span></label>
+          <input type="text" class="form-control" id="salary_range" name="salary_range" value="{{ data.salary_range or '' }}" maxlength="60" placeholder="e.g. PKR 150k-250k / month">
+        </div>
+        <div class="col-md-4">
+          <label for="deadline" class="form-label">Apply by <span class="text-muted">(optional)</span></label>
+          <input type="date" class="form-control" id="deadline" name="deadline" value="{{ data.deadline or '' }}">
+        </div>
+      </div>
+
+      <div class="ai-draft-box mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div><strong class="small"><i class="bi bi-stars me-1"></i>{{ 'AI job description writer' if ai_on else 'Job description draft' }}</strong>
+            <div class="tiny text-muted">Enter a title (and optionally skills), then generate a draft to edit.{{ '' if ai_on else ' Template mode: add an API key for AI-written drafts.' }}</div></div>
+          <button type="button" class="btn btn-sm btn-outline-primary" data-ai-draft data-url="{{ url_for('employer.job_ai_draft') }}" data-csrf="{{ csrf_token() }}">
+            <span class="btn-label"><i class="bi bi-magic me-1"></i>Generate draft</span></button>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="description" class="form-label">Detailed description</label>
+        <textarea class="form-control" id="description" name="description" rows="10" required minlength="30" maxlength="10000"
+                  placeholder="Responsibilities, requirements, benefits…">{{ data.description }}</textarea>
+        <div class="form-text">Screening compares resumes against this text, so be specific. <span id="desc-count"></span></div>
+      </div>
+      <div class="mb-4">
+        <label for="skills" class="form-label">Required skills</label>
+        <input type="text" class="form-control" id="skills" name="skills" value="{{ data.skills }}" required placeholder="Python, Flask, SQL, Git" data-skill-input>
+        <div class="form-text">Separate skills with commas.</div>
+        <div class="mt-2" id="skills-preview" aria-live="polite"></div>
+      </div>
+      {% if job and job.applicant_count %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="rescore" value="1" id="rescore">
+          <label class="form-check-label small" for="rescore">Re-score the {{ job.applicant_count }} existing applicant(s) against the new description and skills</label>
+        </div>
+      {% endif %}
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary px-4" type="submit"><span class="btn-label">{{ 'Save changes' if job else 'Publish job' }}</span></button>
+        <a class="btn btn-light" href="{{ url_for('employer.jobs') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Profile & security{% endblock %}
+{% block page_title %}Profile &amp; security{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <form method="post" action="{{ url_for('account.profile') }}" class="card-lite p-4 fade-up" novalidate>
+      {{ csrf_field() }}
+      <h5 class="fw-bold mb-3">Profile</h5>
+      <div class="mb-3"><label class="form-label" for="full_name">Full name</label>
+        <input class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name }}" required minlength="2" maxlength="120"></div>
+      {% if current_user.role == 'employer' %}
+      <div class="mb-3"><label class="form-label" for="company_name">Company name</label>
+        <input class="form-control" id="company_name" name="company_name" value="{{ current_user.company_name or '' }}" maxlength="150"></div>
+      {% endif %}
+      <div class="mb-3"><label class="form-label" for="email">Email</label>
+        <input class="form-control" id="email" value="{{ current_user.email }}" disabled>
+        <div class="form-text">Your email is your sign-in name and can't be changed here.</div></div>
+      <div class="mb-3 small text-muted">Account type: <strong class="text-capitalize">{{ current_user.role }}</strong> · Member since {{ current_user.created_at|dt }}</div>
+      <button class="btn btn-primary" type="submit">Save profile</button>
+    </form>
+  </div>
+  <div class="col-lg-6">
+    <form method="post" action="{{ url_for('account.change_password') }}" class="card-lite p-4 fade-up delay-1" novalidate>
+      {{ csrf_field() }}
+      <h5 class="fw-bold mb-3">Change password</h5>
+      <div class="mb-3"><label class="form-label" for="current_password">Current password</label>
+        <input type="password" class="form-control" id="current_password" name="current_password" required autocomplete="current-password"></div>
+      <div class="mb-3"><label class="form-label" for="new_password">New password</label>
+        <input type="password" class="form-control" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
+        <div class="form-text">At least 8 characters, with a letter and a number.</div></div>
+      <div class="mb-3"><label class="form-label" for="confirm_password">Confirm new password</label>
+        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required autocomplete="new-password"></div>
+      <button class="btn btn-outline-primary" type="submit">Update password</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

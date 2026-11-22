@@ -1,0 +1,98 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field, status_badge, score_bar, skill_chips, disclaimer %}
+{% block title %}{{ application.applicant.full_name }} · {{ job.title }}{% endblock %}
+{% block page_title %}Candidate profile{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('employer.applicants', job_id=job.id) }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Back to applicants for {{ job.title }}</a>
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-8">
+    <section class="card-lite p-4 fade-up">
+      <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
+        <div class="d-flex gap-3 align-items-center">
+          <span class="avatar avatar-lg">{{ application.applicant.initials }}</span>
+          <div><h3 class="fw-bold mb-0">{{ application.applicant.full_name }}</h3>
+            <a class="text-decoration-none" href="mailto:{{ application.applicant.email }}">{{ application.applicant.email }}</a>
+            <div class="small text-muted">Applied {{ application.applied_at|dt }} · {{ status_badge(application.status) }}</div></div>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('employer.download_resume', application_id=application.id) }}"><i class="bi bi-download me-1"></i>Download resume</a>
+      </div>
+      <hr>
+      <div class="row g-3">
+        <div class="col-md-5"><div class="small text-muted mb-1">Text similarity to “{{ job.title }}”</div>{{ score_bar(application.match_score) }}
+          <div class="tiny text-muted mt-1">{{ (application.match_score|score_band).label }} similarity</div></div>
+        <div class="col-md-7"><div class="small text-muted mb-1">Required skills ({{ application.matched_for_job|length }} of {{ job.skill_list|length }}{% if application.skill_coverage is not none %}, {{ application.skill_coverage }}%{% endif %})</div>
+          {{ skill_chips(job.skill_list, application.matched_for_job) }}</div>
+      </div>
+      {% if application.missing_for_job %}<div class="small text-muted mt-3"><i class="bi bi-exclamation-circle me-1"></i>Not found in resume: {{ application.missing_for_job|join(', ') }}</div>{% endif %}
+    </section>
+
+    <section class="card-lite p-4 mt-3 fade-up">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h5 class="fw-bold mb-0"><i class="bi bi-stars me-1"></i>Candidate brief</h5>
+        <form method="post" action="{{ url_for('employer.application_ai_summary', application_id=application.id) }}"
+              data-loading data-loading-overlay data-loading-text="Reading the resume…">{{ csrf_field() }}
+          <button class="btn btn-sm btn-outline-primary" type="submit"><span class="btn-label"><i class="bi bi-magic me-1"></i>{{ 'Regenerate' if brief else 'Generate brief' }}</span></button></form>
+      </div>
+      {% if brief %}
+        <div class="mb-2">{% if brief.source == 'ai' %}<span class="ai-pill"><i class="bi bi-stars"></i> AI generated</span>{% else %}<span class="badge badge-soft badge-soft-secondary">Basic analysis</span>{% endif %}</div>
+        <p>{{ brief.summary }}</p>
+        <div class="row g-3">
+          {% for title, items, icon in [('Highlights', brief.highlights, 'hand-thumbs-up'), ('Gaps to explore', brief.concerns, 'exclamation-circle'), ('Interview questions', brief.questions, 'chat-dots')] %}
+          {% if items %}<div class="col-md-4"><h6 class="small fw-semibold text-uppercase text-muted"><i class="bi bi-{{ icon }} me-1"></i>{{ title }}</h6>
+            <ul class="small ps-3 mb-0">{% for i in items %}<li class="mb-1">{{ i }}</li>{% endfor %}</ul></div>{% endif %}
+          {% endfor %}
+        </div>
+        <div class="tiny text-muted mt-3">Generated from resume text only. It is an aid for human review, not a hiring decision.{% if not ai_on %} Add an API key to enable AI-written briefs.{% endif %}</div>
+      {% else %}
+        <p class="text-muted small mb-0">Generate a short summary, highlights, gaps and suggested interview questions from this resume.</p>
+      {% endif %}
+    </section>
+
+    <section class="card-lite p-4 mt-3 fade-up">
+      <h5 class="fw-bold">Resume preview</h5>
+      {% if preview %}
+      <pre class="resume-preview">{{ preview }}</pre>
+      <div class="tiny text-muted">Showing the first 2,500 characters of extracted text. Download the PDF for the original.</div>
+      {% else %}<p class="text-muted small mb-0">The text of this resume could not be read. Download the original PDF instead.</p>{% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <aside class="card-lite p-4 mb-3 fade-up delay-1">
+      <h6 class="fw-bold">Profile signals <span class="text-muted fw-normal small">(detected, unverified)</span></h6>
+      <dl class="signals mb-0">
+        <dt>Experience</dt><dd>{{ (signals.years_experience ~ ' years stated') if signals.years_experience else 'Not stated' }}</dd>
+        <dt>Education</dt><dd>{{ signals.education or 'Not detected' }}</dd>
+        <dt>Email on resume</dt><dd class="text-break">{{ signals.email or 'Not detected' }}</dd>
+        <dt>Phone</dt><dd>{{ signals.phone or 'Not detected' }}</dd>
+        <dt>LinkedIn</dt><dd class="text-break">{{ signals.linkedin or 'Not detected' }}</dd>
+        <dt>GitHub</dt><dd class="text-break">{{ signals.github or 'Not detected' }}</dd>
+        <dt>Length</dt><dd>{{ signals.word_count }} words</dd>
+      </dl>
+    </aside>
+
+    <aside class="card-lite p-4 mb-3 fade-up delay-1">
+      <h6 class="fw-bold">Status</h6>
+      <form method="post" action="{{ url_for('employer.application_status', application_id=application.id) }}">
+        {{ csrf_field() }}<input type="hidden" name="return" value="detail">
+        <select class="form-select" name="status" aria-label="Application status" data-autosubmit>
+          {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if application.status == s }}>{{ s|capitalize }}</option>{% endfor %}
+        </select>
+      </form>
+      <div class="tiny text-muted mt-2">The applicant is notified when the status changes.</div>
+    </aside>
+
+    <aside class="card-lite p-4 mb-3 fade-up delay-1">
+      <h6 class="fw-bold"><i class="bi bi-sticky me-1"></i>Private notes</h6>
+      <form method="post" action="{{ url_for('employer.application_notes', application_id=application.id) }}">
+        {{ csrf_field() }}
+        <textarea class="form-control" name="notes" rows="5" maxlength="2000" placeholder="Only you can see these notes">{{ application.employer_notes or '' }}</textarea>
+        <button class="btn btn-outline-primary w-100 mt-2" type="submit">Save notes</button>
+      </form>
+    </aside>
+    {{ disclaimer() }}
+  </div>
+</div>
+{% endblock %}

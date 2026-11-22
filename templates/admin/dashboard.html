@@ -1,0 +1,63 @@
+{% extends "layouts/dashboard.html" %}
+{% block title %}Admin overview{% endblock %}
+{% block page_title %}Platform overview{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  {% for icon, label, value, tone in [
+    ('people','Registered users', stats.users, 'navy'),
+    ('building','Employers', stats.employers, 'teal'),
+    ('person-badge','Applicants', stats.applicants, 'slate'),
+    ('slash-circle','Suspended users', stats.suspended, 'slate'),
+    ('briefcase','Job postings', stats.jobs, 'navy'),
+    ('unlock','Open jobs', stats.open_jobs, 'teal'),
+    ('cloud-download','Imported jobs', stats.external_jobs, 'slate'),
+    ('file-earmark-check','Resumes processed', stats.resumes, 'navy')] %}
+  <div class="col-6 col-md-3">
+    <div class="stat-card tone-{{ tone }} fade-up"><div class="stat-icon"><i class="bi bi-{{ icon }}"></i></div>
+      <div class="stat-value">{{ value }}</div><div class="stat-label">{{ label }}</div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-6"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Resumes processed, last 7 days</h6>
+    <div class="chart-box"><canvas data-chart='{{ charts.weekly|tojson }}' role="img" aria-label="Resumes processed per day"></canvas></div></div></div>
+  <div class="col-md-6 col-lg-3"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Users by role</h6>
+    {% if stats.users %}<div class="chart-box"><canvas data-chart='{{ charts.roles|tojson }}' role="img" aria-label="Users by role"></canvas></div>
+    {% else %}<div class="text-muted small py-5 text-center">No users yet.</div>{% endif %}</div></div>
+  <div class="col-md-6 col-lg-3"><div class="card-lite p-3 h-100"><h6 class="fw-semibold">Jobs by status</h6>
+    {% if stats.jobs %}<div class="chart-box"><canvas data-chart='{{ charts.jobs|tojson }}' role="img" aria-label="Jobs by status"></canvas></div>
+    {% else %}<div class="text-muted small py-5 text-center">No jobs yet.</div>{% endif %}</div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card-lite p-3 h-100">
+      <h6 class="fw-semibold mb-3">Recent platform activity</h6>
+      {% if events %}
+      <ul class="activity list-unstyled mb-0">
+        {% for e in events %}
+        <li><span class="activity-icon"><i class="bi bi-{{ e.icon }}"></i></span>
+          <span class="flex-grow-1">{{ e.text }}</span><span class="small text-muted text-nowrap">{{ e.when|ago }}</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}<div class="text-muted small py-4 text-center">No activity yet.</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card-lite p-3 h-100">
+      <h6 class="fw-semibold mb-3">Quick facts</h6>
+      <dl class="mb-3">
+        <dt class="small text-muted">Open / closed jobs</dt><dd class="fw-semibold">{{ stats.open_jobs }} / {{ stats.closed_jobs }}</dd>
+        <dt class="small text-muted">Average match score</dt><dd class="fw-semibold">{{ stats.avg_score }}%</dd>
+      </dl>
+      <div class="d-grid gap-2">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary"><i class="bi bi-people me-1"></i>Manage users</a>
+        <a href="{{ url_for('admin.jobs') }}" class="btn btn-outline-primary"><i class="bi bi-briefcase me-1"></i>Moderate / import jobs</a>
+        <a href="{{ url_for('admin.activity') }}" class="btn btn-outline-primary"><i class="bi bi-activity me-1"></i>Activity log</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

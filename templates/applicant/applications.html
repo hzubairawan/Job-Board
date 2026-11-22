@@ -1,0 +1,44 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field, status_badge, score_bar, empty_state, pager, disclaimer %}
+{% block title %}My applications{% endblock %}
+{% block page_title %}My applications{% endblock %}
+
+{% block content %}
+{% if applications %}
+  <div class="card-lite p-0 overflow-hidden fade-up">
+    <div class="table-responsive">
+      <table class="table table-modern align-middle mb-0">
+        <thead><tr><th>Job</th><th>Applied</th><th style="min-width:170px">Match</th><th>Skills</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        {% for a in applications %}
+          <tr>
+            <td>
+              <a class="fw-semibold text-decoration-none" href="{{ url_for('applicant.job_detail', job_id=a.job_id) }}">{{ a.job.title }}</a>
+              <div class="small text-muted">{{ a.job.company }}</div>
+            </td>
+            <td class="text-nowrap">{{ a.applied_at|dt }}</td>
+            <td>{{ score_bar(a.match_score) }}</td>
+            <td class="small">{% if a.skill_coverage is not none %}{{ a.matched_for_job|length }}/{{ a.job.skill_list|length }} <span class="text-muted">({{ a.skill_coverage }}%)</span>{% else %}-{% endif %}</td>
+            <td>{{ status_badge(a.status) }}</td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-1">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('applicant.download_resume', application_id=a.id) }}" title="Download resume"><i class="bi bi-download"></i></a>
+                <form method="post" action="{{ url_for('applicant.withdraw', application_id=a.id) }}"
+                      data-confirm="Withdraw your application for “{{ a.job.title }}”? Your resume file will be deleted.">{{ csrf_field() }}
+                  <button class="btn btn-sm btn-outline-danger" type="submit" title="Withdraw"><i class="bi bi-x-circle"></i></button></form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{ pager(pagination, 'applicant.applications', qargs) }}
+  <div class="mt-4">{{ disclaimer() }}</div>
+{% else %}
+  <div class="card-lite">
+    {{ empty_state('file-earmark-text', 'No applications yet', 'When you apply to a job it will appear here with its match score and status.', url_for('applicant.dashboard'), 'Browse jobs') }}
+  </div>
+{% endif %}
+{% endblock %}

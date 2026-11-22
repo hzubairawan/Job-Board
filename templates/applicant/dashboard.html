@@ -1,0 +1,104 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import job_card, empty_state, pager %}
+{% block title %}Job board{% endblock %}
+{% block page_title %}Job board{% endblock %}
+
+{% block content %}
+<section class="welcome-card fade-up">
+  <div>
+    <h3 class="fw-bold mb-1">Welcome, {{ current_user.full_name.split()[0] }} 👋</h3>
+    <p class="mb-0 opacity-75">Browse thousands of openings, save the ones you like and check your resume against any job before you apply.</p>
+  </div>
+  <div class="welcome-stats">
+    <div><div class="num">{{ stats.open_jobs }}</div><div class="lbl">Open jobs</div></div>
+    <div><div class="num">{{ stats.saved }}</div><div class="lbl">Saved</div></div>
+    <div><div class="num">{{ stats.applications }}</div><div class="lbl">Applied</div></div>
+    <div><div class="num">{{ stats.avg_score }}%</div><div class="lbl">Avg. match</div></div>
+  </div>
+</section>
+
+{% if recommended %}
+<section class="mb-4 fade-up">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <h5 class="fw-bold mb-0">Recommended for you</h5><span class="ai-pill"><i class="bi bi-stars"></i> Based on your resume</span>
+  </div>
+  <div class="row g-3">
+    {% for r in recommended %}
+    <div class="col-md-6 col-xl-4">
+      <div class="recommend-wrap h-100">
+        <div class="recommend-score">{{ '%.0f'|format(r.score) }}% match</div>
+        {{ job_card(r.job, false, r.job.id in saved_ids) }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% elif not filters.q and not filters.type and not filters.exp and not filters.location and pagination.page == 1 and stats.applications == 0 %}
+<div class="tip-banner fade-up"><i class="bi bi-lightbulb"></i>
+  <span>Apply to your first job, or use <strong>Check my resume</strong> on any job page, and we'll start recommending the best matches for your resume.</span></div>
+{% endif %}
+
+<form method="get" class="filter-bar card-lite" role="search">
+  <div class="row g-2 align-items-end">
+    <div class="col-lg-3">
+      <label class="form-label small mb-1" for="q">Search by title or skill</label>
+      <div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="search" class="form-control" id="q" name="q" value="{{ filters.q }}" placeholder="e.g. Python developer" maxlength="100"></div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <label class="form-label small mb-1" for="type">Job type</label>
+      <select class="form-select" id="type" name="type">
+        <option value="">All types</option>
+        {% for t in job_types %}<option value="{{ t }}" {{ 'selected' if filters.type == t }}>{{ t }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-lg-2">
+      <label class="form-label small mb-1" for="exp">Experience</label>
+      <select class="form-select" id="exp" name="exp">
+        <option value="">Any level</option>
+        {% for l in experience_levels %}<option value="{{ l }}" {{ 'selected' if filters.exp == l }}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-lg-2">
+      <label class="form-label small mb-1" for="location">Location</label>
+      <input type="text" class="form-control" id="location" name="location" value="{{ filters.location }}" placeholder="Any" maxlength="100">
+    </div>
+    <div class="col-6 col-lg-1">
+      <label class="form-label small mb-1" for="sort">Sort</label>
+      <select class="form-select" id="sort" name="sort">
+        <option value="newest" {{ 'selected' if filters.sort == 'newest' }}>Newest</option>
+        <option value="oldest" {{ 'selected' if filters.sort == 'oldest' }}>Oldest</option>
+        <option value="title" {{ 'selected' if filters.sort == 'title' }}>A–Z</option>
+        <option value="deadline" {{ 'selected' if filters.sort == 'deadline' }}>Deadline</option>
+      </select>
+    </div>
+    <div class="col-12 col-lg-2 d-flex gap-2">
+      <button class="btn btn-primary flex-grow-1" type="submit">Filter</button>
+      <a class="btn btn-light" href="{{ url_for('applicant.dashboard') }}" title="Clear filters" aria-label="Clear filters"><i class="bi bi-x-lg"></i></a>
+    </div>
+    <div class="col-12">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="hide_applied" value="1" id="hide_applied" {{ 'checked' if filters.hide_applied }}>
+        <label class="form-check-label small" for="hide_applied">Hide jobs I have already applied to</label>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="d-flex justify-content-between align-items-center mt-3 small text-muted">
+  <span>{{ pagination.total }} job{{ '' if pagination.total == 1 else 's' }} found</span>
+</div>
+
+{% if jobs %}
+  <div class="row g-3 mt-0">
+    {% for job in jobs %}
+    <div class="col-md-6 col-xl-4">{{ job_card(job, job.id in applied_ids, job.id in saved_ids) }}</div>
+    {% endfor %}
+  </div>
+  {{ pager(pagination, 'applicant.dashboard', qargs) }}
+{% else %}
+  <div class="card-lite mt-3">
+    {{ empty_state('search', 'No jobs found', 'Try a different keyword or clear your filters.', url_for('applicant.dashboard'), 'Clear filters') }}
+  </div>
+{% endif %}
+{% endblock %}

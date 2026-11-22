@@ -1,0 +1,59 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import csrf_field, empty_state, pager %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block content %}
+<form method="get" class="d-flex flex-wrap gap-2 mb-3" role="search">
+  <div class="input-group w-auto flex-grow-1" style="max-width: 420px">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="search" class="form-control" name="q" value="{{ q }}" placeholder="Search name or email" maxlength="100" aria-label="Search users">
+  </div>
+  <select class="form-select w-auto" name="role" aria-label="Filter by role" data-autosubmit>
+    <option value="">All roles</option>
+    {% for r in ['applicant','employer','admin'] %}<option value="{{ r }}" {{ 'selected' if role == r }}>{{ r|capitalize }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+
+{% if users %}
+<div class="card-lite p-0 overflow-hidden fade-up">
+  <div class="table-responsive">
+    <table class="table table-modern align-middle mb-0">
+      <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>Last login</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td><div class="d-flex align-items-center gap-2"><span class="avatar">{{ u.initials }}</span>
+            <div><div class="fw-semibold">{{ u.full_name }}</div><div class="small text-muted">{{ u.email }}</div></div></div></td>
+          <td><span class="badge badge-soft badge-soft-{{ 'info' if u.role == 'employer' else ('success' if u.role == 'applicant' else 'secondary') }}">{{ u.role|capitalize }}</span></td>
+          <td class="text-nowrap small text-muted">{{ u.created_at|dt }}</td>
+          <td class="text-nowrap small text-muted">{{ u.last_login_at|ago if u.last_login_at else 'Never' }}</td>
+          <td>{% if u.is_suspended %}<span class="badge badge-soft badge-soft-danger">Suspended</span>{% else %}<span class="badge badge-soft badge-soft-success">Active</span>{% endif %}</td>
+          <td class="text-end">
+            {% if u.role != 'admin' %}
+            <div class="d-inline-flex gap-1">
+              <form method="post" action="{{ url_for('admin.user_suspend', user_id=u.id) }}"
+                    {% if not u.is_suspended %}data-confirm="Suspend {{ u.full_name }}? They will be signed out and unable to log in."{% endif %}>
+                {{ csrf_field() }}
+                <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-{{ 'arrow-counterclockwise' if u.is_suspended else 'slash-circle' }} me-1"></i>{{ 'Reinstate' if u.is_suspended else 'Suspend' }}</button>
+              </form>
+              <form method="post" action="{{ url_for('admin.user_delete', user_id=u.id) }}"
+                    data-confirm="Permanently delete {{ u.full_name }} and all their jobs, applications and resumes? This cannot be undone.">
+                {{ csrf_field() }}
+                <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+            {% else %}<span class="small text-muted">Protected</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager(pagination, 'admin.users', qargs) }}
+{% else %}
+  <div class="card-lite">{{ empty_state('people', 'No users found', 'Try a different search or role filter.') }}</div>
+{% endif %}
+{% endblock %}

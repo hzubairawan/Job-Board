@@ -1,0 +1,17 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import job_card, empty_state %}
+{% block title %}Saved jobs{% endblock %}
+{% block page_title %}Saved jobs{% endblock %}
+
+{% block content %}
+{% if rows %}
+  <div class="text-muted small mb-3">{{ rows|length }} saved job{{ '' if rows|length == 1 else 's' }}</div>
+  <div class="row g-3">
+    {% for row in rows %}
+    <div class="col-md-6 col-xl-4">{{ job_card(row.job, row.job_id in applied_ids, true) }}</div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card-lite">{{ empty_state('bookmark-heart', 'No saved jobs yet', 'Tap the bookmark on any job to keep it here for later.', url_for('applicant.dashboard'), 'Browse jobs') }}</div>
+{% endif %}
+{% endblock %}

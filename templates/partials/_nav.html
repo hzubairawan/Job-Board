@@ -1,0 +1,33 @@
+{% set ep = request.endpoint or '' %}
+{% macro item(ep, endpoint_list, url, icon, label) %}
+  <a href="{{ url }}" class="nav-item-link {{ 'active' if ep in endpoint_list }}">
+    <i class="bi bi-{{ icon }}"></i><span>{{ label }}</span>
+  </a>
+{% endmacro %}
+
+<nav class="sidebar-nav" aria-label="Main">
+  {% if current_user.role == 'applicant' %}
+    <div class="nav-section">Applicant</div>
+    {{ item(ep, ['applicant.dashboard','applicant.job_detail'], url_for('applicant.dashboard'), 'grid-1x2', 'Job board') }}
+    {{ item(ep, ['applicant.saved'], url_for('applicant.saved'), 'bookmark-heart', 'Saved jobs') }}
+    {{ item(ep, ['applicant.applications'], url_for('applicant.applications'), 'file-earmark-text', 'My applications') }}
+  {% elif current_user.role == 'employer' %}
+    <div class="nav-section">Employer</div>
+    {{ item(ep, ['employer.dashboard'], url_for('employer.dashboard'), 'speedometer2', 'Dashboard') }}
+    {{ item(ep, ['employer.jobs','employer.job_edit','employer.applicants'], url_for('employer.jobs'), 'briefcase', 'My jobs') }}
+    {{ item(ep, ['employer.job_new'], url_for('employer.job_new'), 'plus-circle', 'Post a job') }}
+  {% elif current_user.role == 'admin' %}
+    <div class="nav-section">Administration</div>
+    {{ item(ep, ['admin.dashboard'], url_for('admin.dashboard'), 'speedometer2', 'Overview') }}
+    {{ item(ep, ['admin.users'], url_for('admin.users'), 'people', 'Users') }}
+    {{ item(ep, ['admin.jobs'], url_for('admin.jobs'), 'briefcase', 'Job postings') }}
+    {{ item(ep, ['admin.activity'], url_for('admin.activity'), 'activity', 'Activity log') }}
+  {% endif %}
+  <div class="nav-section">Account</div>
+  {{ item(ep, ['account.notifications'], url_for('account.notifications'), 'bell', 'Notifications') }}
+  {{ item(ep, ['account.profile'], url_for('account.profile'), 'person-gear', 'Profile & security') }}
+</nav>
+<div class="sidebar-note">
+  <i class="bi bi-shield-check"></i>
+  Match scores are similarity indicators that support, not replace, human review.
+</div>

@@ -1,0 +1,35 @@
+{% extends "layouts/dashboard.html" %}
+{% from "_macros.html" import empty_state, pager %}
+{% block title %}Activity log{% endblock %}
+{% block page_title %}Activity log{% endblock %}
+
+{% block content %}
+<form method="get" class="d-flex flex-wrap gap-2 mb-3">
+  <select class="form-select w-auto" name="action" aria-label="Filter by action" data-autosubmit>
+    <option value="">All actions</option>
+    {% for a in actions %}<option value="{{ a }}" {{ 'selected' if action == a }}>{{ a|replace('_', ' ')|capitalize }}</option>{% endfor %}
+  </select>
+</form>
+{% if logs %}
+<div class="card-lite p-0 overflow-hidden fade-up">
+  <div class="table-responsive">
+    <table class="table table-modern align-middle mb-0">
+      <thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
+      <tbody>
+      {% for l in logs %}
+        <tr>
+          <td class="text-nowrap small text-muted">{{ l.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td>{% if l.user %}<span class="fw-semibold">{{ l.user.full_name }}</span><div class="tiny text-muted text-capitalize">{{ l.user.role }}</div>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+          <td><span class="badge badge-soft badge-soft-{{ 'danger' if 'delet' in l.action or 'removed' in l.action or 'failed' in l.action or 'suspended' in l.action else 'info' }}">{{ l.action|replace('_', ' ') }}</span></td>
+          <td class="small text-break">{{ l.detail }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager(pagination, 'admin.activity', qargs) }}
+{% else %}
+  <div class="card-lite">{{ empty_state('activity', 'No activity recorded', 'Logins, applications and moderation actions will appear here.') }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,99 @@
+{% macro csrf_field() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro status_badge(status) %}
+  {% set cls = {'pending':'secondary','reviewed':'info','shortlisted':'success','rejected':'danger','open':'success','closed':'secondary','expired':'danger'}.get(status, 'secondary') %}
+  <span class="badge badge-soft badge-soft-{{ cls }}">{{ status|capitalize }}</span>
+{% endmacro %}
+
+{% macro score_bar(score) %}
+  {% set band = score|score_band %}
+  <div class="score-cell" title="{{ band.label }} text similarity">
+    <div class="score-track"><div class="score-fill band-{{ band.cls }}" style="width: {{ [score, 100]|min }}%"></div></div>
+    <span class="score-value band-text-{{ band.cls }}">{{ '%.1f'|format(score) }}%</span>
+  </div>
+{% endmacro %}
+
+{% macro skill_chips(skills, matched=none) %}
+  <div class="d-flex flex-wrap gap-1">
+    {% for s in skills %}
+      {% set hit = matched is not none and s in matched %}
+      <span class="skill-chip {{ 'skill-hit' if hit }}">{% if hit %}<i class="bi bi-check2"></i> {% endif %}{{ s }}</span>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro empty_state(icon, title, text, cta_url=none, cta_label=none) %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-{{ icon }}"></i></div>
+    <h5 class="mb-1">{{ title }}</h5>
+    <p class="text-muted mb-3">{{ text }}</p>
+    {% if cta_url %}<a href="{{ cta_url }}" class="btn btn-primary">{{ cta_label }}</a>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro pager(pg, endpoint, args={}) %}
+  {% if pg.pages > 1 %}
+  <nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+      <li class="page-item {{ 'disabled' if not pg.has_prev }}">
+        <a class="page-link" href="{{ url_for(endpoint, page=pg.prev_num, **args) if pg.has_prev else '#' }}">Previous</a>
+      </li>
+      {% for p in pg.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+        {% if p %}
+          <li class="page-item {{ 'active' if p == pg.page }}"><a class="page-link" href="{{ url_for(endpoint, page=p, **args) }}">{{ p }}</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {{ 'disabled' if not pg.has_next }}">
+        <a class="page-link" href="{{ url_for(endpoint, page=pg.next_num, **args) if pg.has_next else '#' }}">Next</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+{% endmacro %}
+
+{% macro disclaimer() %}
+  <div class="disclaimer">
+    <i class="bi bi-info-circle-fill"></i>
+    <div>
+      <strong>About the match score.</strong> It is a text-similarity indicator (TF-IDF and cosine similarity between the
+      resume and the job description plus required skills). It is not a guaranteed measure of a candidate's ability or
+      suitability and should support, never replace, human review.
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro job_card(job, applied=false, saved=false) %}
+<article class="job-card h-100 fade-up">
+  <div class="d-flex justify-content-between align-items-start gap-2">
+    <div class="company-badge">{{ job.company[0]|upper }}</div>
+    <div class="d-flex align-items-center gap-1 card-actions">
+      {% if applied %}<span class="badge badge-soft badge-soft-success"><i class="bi bi-check2"></i> Applied</span>
+      {% elif not job.is_open %}<span class="badge badge-soft badge-soft-secondary">Closed</span>
+      {% elif job.is_external %}<span class="badge badge-soft badge-soft-secondary"><i class="bi bi-box-arrow-up-right"></i> {{ job.source_label or 'External' }}</span>
+      {% else %}<span class="badge badge-soft badge-soft-info">{{ job.job_type }}</span>{% endif %}
+      <form method="post" action="{{ url_for('applicant.toggle_save', job_id=job.id) }}">
+        {{ csrf_field() }}
+        <button type="submit" class="btn-icon {{ 'is-saved' if saved }}" aria-label="{{ 'Remove from saved jobs' if saved else 'Save job' }}"
+                title="{{ 'Remove from saved' if saved else 'Save job' }}"><i class="bi bi-bookmark{{ '-fill' if saved }}"></i></button>
+      </form>
+    </div>
+  </div>
+  <h5 class="mt-3 mb-1"><a href="{{ url_for('applicant.job_detail', job_id=job.id) }}" class="stretched-link text-reset text-decoration-none">{{ job.title }}</a></h5>
+  <div class="text-muted small mb-2">{{ job.company }}{% if job.location %} · <i class="bi bi-geo-alt"></i> {{ job.location }}{% endif %}</div>
+  {% if job.experience_level or job.salary_range %}
+  <div class="d-flex flex-wrap gap-2 small mb-2">
+    {% if job.experience_level %}<span class="meta-pill"><i class="bi bi-bar-chart"></i> {{ job.experience_level }}</span>{% endif %}
+    {% if job.salary_range %}<span class="meta-pill"><i class="bi bi-cash-coin"></i> {{ job.salary_range }}</span>{% endif %}
+  </div>{% endif %}
+  <p class="text-muted small clamp-3">{{ job.description }}</p>
+  <div class="mt-auto">
+    {{ skill_chips(job.skill_list[:4]) }}
+    <div class="small text-muted mt-2 d-flex justify-content-between">
+      <span>Posted {{ job.created_at|ago }}</span>
+      {% if job.days_left is not none and job.is_open %}<span class="{{ 'text-danger' if job.days_left <= 3 }}">{{ job.days_left }} day{{ '' if job.days_left == 1 else 's' }} left</span>{% endif %}
+    </div>
+  </div>
+</article>
+{% endmacro %}
