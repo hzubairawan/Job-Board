@@ -33,19 +33,43 @@ ERROR_INFO = {
 }
 
 
+
 def create_app(config_object=None):
-    app = Flask(__name__, instance_relative_config=True)
+    # Vercel writable temporary directory
+    instance_path = "/tmp/smart_resume_instance"
+    os.makedirs(instance_path, exist_ok=True)
+
+    # Initialize Flask application
+    app = Flask(
+        __name__,
+        instance_path=instance_path,
+        instance_relative_config=True
+    )
+
+    # Load configuration
     app.config.from_object(config_object or get_config())
 
+    # Configure secret key
     if not app.config.get("SECRET_KEY"):
         if os.environ.get("APP_ENV") == "production":
-            raise RuntimeError("SECRET_KEY must be set in production (see .env.example).")
+            raise RuntimeError(
+                "SECRET_KEY must be set in production."
+            )
         app.config["SECRET_KEY"] = secrets.token_hex(32)
-        app.logger.warning("No SECRET_KEY set - using a temporary key. Sessions reset on restart.")
+        app.logger.warning(
+            "No SECRET_KEY set - using a temporary key."
+        )
 
-    os.makedirs(app.instance_path, exist_ok=True)
+    # Configure upload directory
+    app.config["UPLOAD_FOLDER"] = os.path.join(
+        instance_path, "uploads"
+    )
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
     logging.basicConfig(level=logging.INFO)
+
+    # Initialize database
+    db.init_app(app)
 
     db.init_app(app)
     login_manager.init_app(app)
